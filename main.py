@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 # -----------------------------------------
 # 기본 설정
@@ -137,13 +138,11 @@ top5_movies = (
 top5_df = df[df["영화명"].isin(top5_movies)].copy()
 top5_df = top5_df.sort_values(["날짜", "영화명"])
 
-# 여러 영화를 하나의 선 그래프로 표시
 fig2 = px.line(
     top5_df,
     x="날짜",
     y="일관객",
     color="영화명",
-    markers=False,
     title="일관객 합계 TOP 5 영화의 날짜별 일관객 변화",
     labels={
         "날짜": "날짜",
@@ -180,9 +179,94 @@ st.text_input(
 
 
 # =================================================
-# 그래프 3. 앞으로 추가할 그래프
+# 그래프 3. 날짜별 TOP 10 일관객 합계
 # =================================================
-st.header("3. 추가 그래프")
+st.header("3. 날짜별 TOP 10 일관객 합계")
+
+st.write(
+    "각 날짜의 박스오피스 10위권 영화의 일관객을 모두 합산하여 날짜별 전체 관객 규모의 변화를 보여 줍니다."
+)
+
+# 날짜별 일관객 합계
+daily_total = (
+    df.groupby("날짜", as_index=False)["일관객"]
+    .sum()
+    .sort_values("날짜")
+)
+
+# 일관객 합계가 가장 큰 3일
+top3_days = (
+    daily_total
+    .nlargest(3, "일관객")
+    .sort_values("날짜")
+)
+
+# 영역 그래프
+fig3 = px.area(
+    daily_total,
+    x="날짜",
+    y="일관객",
+    title="날짜별 박스오피스 TOP 10 일관객 합계",
+    labels={
+        "날짜": "날짜",
+        "일관객": "10위권 일관객 합계"
+    }
+)
+
+# 기본 마우스오버
+fig3.update_traces(
+    hovertemplate=(
+        "날짜: %{x|%Y-%m-%d}"
+        "<br>10위권 일관객 합계: %{y:,}명"
+        "<extra></extra>"
+    )
+)
+
+# 최고 3일 표시용 점 추가
+fig3.add_trace(
+    go.Scatter(
+        x=top3_days["날짜"],
+        y=top3_days["일관객"],
+        mode="markers+text",
+        text=[
+            date.strftime("%Y-%m-%d")
+            for date in top3_days["날짜"]
+        ],
+        textposition="top center",
+        marker=dict(
+            size=9
+        ),
+        name="일관객 합계 TOP 3",
+        hovertemplate=(
+            "날짜: %{x|%Y-%m-%d}"
+            "<br>10위권 일관객 합계: %{y:,}명"
+            "<extra></extra>"
+        )
+    )
+)
+
+fig3.update_layout(
+    hovermode="x unified",
+    xaxis_title="날짜",
+    yaxis_title="10위권 일관객 합계(명)",
+    showlegend=False
+)
+
+st.plotly_chart(fig3, use_container_width=True)
+
+st.markdown("**이 그래프로 알 수 있는 것:**")
+
+st.text_input(
+    "그래프에서 발견한 내용을 한 문장으로 적어 보세요.",
+    placeholder="예: 영화관을 찾는 관객은 특정 시기에 집중되는 경향이 나타난다.",
+    key="graph3_note"
+)
+
+
+# =================================================
+# 그래프 4. 앞으로 추가할 그래프
+# =================================================
+st.header("4. 추가 그래프")
 
 st.info(
     "앞으로 새로운 시간 관련 영화 데이터 그래프를 이 구역에 추가할 수 있습니다."
