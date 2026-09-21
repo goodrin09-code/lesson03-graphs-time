@@ -263,7 +263,6 @@ st.write(
     "전체 기간 동안 영화별 일관객을 모두 더해 관객 수가 많은 영화 TOP 10을 비교합니다."
 )
 
-# 영화별 일관객 합계 + 10위권에 기록된 날수 계산
 movie_summary = (
     df.groupby("영화명")
     .agg(
@@ -273,7 +272,6 @@ movie_summary = (
     .reset_index()
 )
 
-# 기간 일관객이 많은 TOP 10
 top10_movies = (
     movie_summary
     .sort_values("기간_일관객", ascending=False)
@@ -281,7 +279,6 @@ top10_movies = (
     .copy()
 )
 
-# 가로 막대그래프에서 위쪽에 가장 많은 영화가 오도록
 top10_movies = top10_movies.sort_values(
     "기간_일관객",
     ascending=True
@@ -333,9 +330,99 @@ st.text_input(
 
 
 # =================================================
-# 그래프 5. 앞으로 추가할 그래프
+# 그래프 5. 월 × 요일별 일관객 합계 히트맵
 # =================================================
-st.header("5. 추가 그래프")
+st.header("5. 월 × 요일별 일관객 합계")
+
+st.write(
+    "날짜에서 월과 요일을 추출하여, 각 월의 각 요일에 발생한 일관객 합계를 비교합니다."
+)
+
+# 요일 이름과 순서 설정
+weekday_order = [
+    "월요일",
+    "화요일",
+    "수요일",
+    "목요일",
+    "금요일",
+    "토요일",
+    "일요일"
+]
+
+# 월과 요일 추출
+heatmap_df = df.copy()
+
+heatmap_df["월"] = heatmap_df["날짜"].dt.month
+heatmap_df["요일"] = heatmap_df["날짜"].dt.dayofweek.map(
+    lambda x: weekday_order[x]
+)
+
+# 월 × 요일별 일관객 합계
+heatmap_data = (
+    heatmap_df
+    .groupby(["월", "요일"])["일관객"]
+    .sum()
+    .reset_index()
+)
+
+# 피벗
+heatmap_pivot = heatmap_data.pivot(
+    index="월",
+    columns="요일",
+    values="일관객"
+)
+
+# 월 순서 1월 → 12월
+heatmap_pivot = heatmap_pivot.reindex(range(1, 13))
+
+# 요일 순서 월요일 → 일요일
+heatmap_pivot = heatmap_pivot.reindex(
+    columns=weekday_order
+)
+
+# 히트맵
+fig5 = px.imshow(
+    heatmap_pivot,
+    labels={
+        "x": "요일",
+        "y": "월",
+        "color": "일관객 합계"
+    },
+    x=weekday_order,
+    y=[f"{month}월" for month in heatmap_pivot.index],
+    aspect="auto",
+    title="월 × 요일별 일관객 합계",
+    color_continuous_scale="Blues"
+)
+
+fig5.update_traces(
+    hovertemplate=(
+        "%{y} %{x}"
+        "<br>일관객 합계: %{z:,}명"
+        "<extra></extra>"
+    )
+)
+
+fig5.update_layout(
+    xaxis_title="요일",
+    yaxis_title="월"
+)
+
+st.plotly_chart(fig5, use_container_width=True)
+
+st.markdown("**이 그래프로 알 수 있는 것:**")
+
+st.text_input(
+    "그래프에서 발견한 내용을 한 문장으로 적어 보세요.",
+    placeholder="예: 특정 월의 주말에 다른 요일보다 많은 관객이 영화관을 찾는 경향을 확인할 수 있다.",
+    key="graph5_note"
+)
+
+
+# =================================================
+# 그래프 6. 앞으로 추가할 그래프
+# =================================================
+st.header("6. 추가 그래프")
 
 st.info(
     "앞으로 새로운 시간 관련 영화 데이터 그래프를 이 구역에 추가할 수 있습니다."
