@@ -125,7 +125,6 @@ st.write(
     "전체 기간 동안 일관객의 합계가 가장 큰 5편의 날짜별 일관객 변화를 비교합니다."
 )
 
-# 영화별 일관객 합계 계산
 top5_movies = (
     df.groupby("영화명", as_index=False)["일관객"]
     .sum()
@@ -134,7 +133,6 @@ top5_movies = (
     .tolist()
 )
 
-# TOP 5 영화만 추출
 top5_df = df[df["영화명"].isin(top5_movies)].copy()
 top5_df = top5_df.sort_values(["날짜", "영화명"])
 
@@ -187,21 +185,18 @@ st.write(
     "각 날짜의 박스오피스 10위권 영화의 일관객을 모두 합산하여 날짜별 전체 관객 규모의 변화를 보여 줍니다."
 )
 
-# 날짜별 일관객 합계
 daily_total = (
     df.groupby("날짜", as_index=False)["일관객"]
     .sum()
     .sort_values("날짜")
 )
 
-# 일관객 합계가 가장 큰 3일
 top3_days = (
     daily_total
     .nlargest(3, "일관객")
     .sort_values("날짜")
 )
 
-# 영역 그래프
 fig3 = px.area(
     daily_total,
     x="날짜",
@@ -213,7 +208,6 @@ fig3 = px.area(
     }
 )
 
-# 기본 마우스오버
 fig3.update_traces(
     hovertemplate=(
         "날짜: %{x|%Y-%m-%d}"
@@ -222,7 +216,6 @@ fig3.update_traces(
     )
 )
 
-# 최고 3일 표시용 점 추가
 fig3.add_trace(
     go.Scatter(
         x=top3_days["날짜"],
@@ -233,9 +226,7 @@ fig3.add_trace(
             for date in top3_days["날짜"]
         ],
         textposition="top center",
-        marker=dict(
-            size=9
-        ),
+        marker=dict(size=9),
         name="일관객 합계 TOP 3",
         hovertemplate=(
             "날짜: %{x|%Y-%m-%d}"
@@ -264,9 +255,87 @@ st.text_input(
 
 
 # =================================================
-# 그래프 4. 앞으로 추가할 그래프
+# 그래프 4. 영화별 기간 일관객 TOP 10
 # =================================================
-st.header("4. 추가 그래프")
+st.header("4. 영화별 기간 일관객 TOP 10")
+
+st.write(
+    "전체 기간 동안 영화별 일관객을 모두 더해 관객 수가 많은 영화 TOP 10을 비교합니다."
+)
+
+# 영화별 일관객 합계 + 10위권에 기록된 날수 계산
+movie_summary = (
+    df.groupby("영화명")
+    .agg(
+        기간_일관객=("일관객", "sum"),
+        기록_일수=("날짜", "nunique")
+    )
+    .reset_index()
+)
+
+# 기간 일관객이 많은 TOP 10
+top10_movies = (
+    movie_summary
+    .sort_values("기간_일관객", ascending=False)
+    .head(10)
+    .copy()
+)
+
+# 가로 막대그래프에서 위쪽에 가장 많은 영화가 오도록
+top10_movies = top10_movies.sort_values(
+    "기간_일관객",
+    ascending=True
+)
+
+fig4 = px.bar(
+    top10_movies,
+    x="기간_일관객",
+    y="영화명",
+    orientation="h",
+    title="영화별 기간 일관객 TOP 10",
+    labels={
+        "기간_일관객": "기간 일관객 합계",
+        "영화명": "영화"
+    },
+    hover_data={
+        "기간_일관객": ":,",
+        "기록_일수": True
+    }
+)
+
+fig4.update_traces(
+    hovertemplate=(
+        "영화: %{y}"
+        "<br>기간 일관객 합계: %{x:,}명"
+        "<br>10위권 기록 일수: %{customdata[0]}일"
+        "<extra></extra>"
+    ),
+    customdata=top10_movies[["기록_일수"]].values
+)
+
+fig4.update_layout(
+    xaxis_title="기간 일관객 합계(명)",
+    yaxis_title="영화",
+    yaxis=dict(
+        categoryorder="total ascending"
+    )
+)
+
+st.plotly_chart(fig4, use_container_width=True)
+
+st.markdown("**이 그래프로 알 수 있는 것:**")
+
+st.text_input(
+    "그래프에서 발견한 내용을 한 문장으로 적어 보세요.",
+    placeholder="예: 전체 기간 동안 누적된 일관객 수가 많은 영화들을 비교할 수 있다.",
+    key="graph4_note"
+)
+
+
+# =================================================
+# 그래프 5. 앞으로 추가할 그래프
+# =================================================
+st.header("5. 추가 그래프")
 
 st.info(
     "앞으로 새로운 시간 관련 영화 데이터 그래프를 이 구역에 추가할 수 있습니다."
